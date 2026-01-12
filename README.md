@@ -377,6 +377,7 @@
                     <a href="https://www.facebook.com/lalukumartantii" class="card" onclick="playTap()"><i class="fab fa-facebook-f"></i><span>Facebook</span></a>
                     <a href="https://x.com/LaluKumarTanti" class="card" onclick="playTap()"><i class="fab fa-x-twitter"></i><span>Twitter / X</span></a>
                     <a href="https://www.snapchat.com/@lalu_kumar77" class="card" onclick="playTap()"><i class="fab fa-snapchat-ghost"></i><span>Snapchat</span></a>
+                    <a href="https://my.play/LaluKumaTanti" class="card" onclick="playTap()"><i class="fab fa-google-play"></i><span>My Play</span></a>
                     <a href="http://www.youtube.com/@Lalu_Kumar_Tanti" class="card full-w" onclick="playTap()"><i class="fab fa-youtube"></i><span>YouTube</span></a>
                 </div>
 
